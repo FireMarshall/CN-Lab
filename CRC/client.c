@@ -52,8 +52,8 @@ void crc(){
 
 int main(int argc, char const *argv[]) {
 
-    int client_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if(client_socket_desc == -1){
+    int client_socket_desc;;
+    if((client_socket_desc = socket(AF_INET, SOCK_STREAM, 0))== -1){
         perror("Cannot create socket\n");
         exit(1);
     }
@@ -65,8 +65,7 @@ int main(int argc, char const *argv[]) {
     server_address.sin_port = port;
     server_address.sin_family = AF_INET;
 
-    int connection_status = connect(client_socket_desc, (sockaddr *)&server_address, sizeof server_address);
-    if(connection_status == -1){
+    if((connect(client_socket_desc, (sockaddr *)&server_address, sizeof server_address))== -1){
         perror("Cannot connect to server\n");
         exit(1);
     }

@@ -6,6 +6,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/sendfile.h>
+
 
 #define bool int
 #define true 1
@@ -13,31 +17,6 @@
 
 typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr;
-
-char data[100];
-char gen[] = "1001";
-
-void crc(){
-    int i, j, n = 4 ,size = strlen(data);
-
-    char tmp[50] = {0};
-
-    for(i = 0; i < n; ++i){
-        tmp[i] = data[i];
-    }
-    while(i < n+size){
-        if(tmp[0] == '1'){
-            for(int k = 0; k < n; ++k){
-                tmp[k] = (tmp[k] == gen[k]) ? '0' : '1';
-            }
-        }
-        for(j = 0; j < n-1; ++j){
-            tmp[j] = tmp[j+1];
-        }
-        tmp[j] = data[i++];
-    }
-    printf("TMP : %s\n", tmp);
-}
 
 
 int main(int argc, char const *argv[]){
@@ -65,7 +44,8 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
 
-    if((bind(server_socket_desc, (sockaddr *)&server_address, sizeof server_address)) == -1){
+    int bind_status = bind(server_socket_desc, (sockaddr *)&server_address, sizeof server_address);
+    if(bind_status == -1){
         perror("Cannot bind\n");
         exit(1);
     }
@@ -80,9 +60,25 @@ int main(int argc, char const *argv[]){
             perror("Cannot accept connection\n");
         }
 
-        int nbytes_read = read(client_socket_desc, data, sizeof(data));
-        crc();
-        printf("R o C : %s\n", data);
+        char cmd[256], tmp[256];
+        recv(client_socket_desc, tmp, sizeof tmp, 0);
+        // printf("cmd: %s\n", cmd);
+
+        char file_name[265];
+        sscanf(tmp, "%s %s", cmd, file_name);
+
+        struct stat file_stat;
+        stat(file_name, &file_stat);
+        int file_size = file_stat.st_size;
+
+        int file_handle = open(file_name, O_RDONLY);
+        if(file_handle == -1){
+            file_size = 0;
+        }
+        send(client_socket_desc, &file_size, sizeof file_size, 0);
+        unsigned char buffer[65536];
+        // int nbytes_read = read(file_handle, buffer, sizeof buffer);
+        sendfile(client_socket_desc, file_handle, NULL, 0);
         close(client_socket_desc);
     }
 
