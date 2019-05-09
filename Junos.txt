@@ -1,0 +1,79 @@
+show | display set
+- 3 options 
+    -ssh
+    -auth
+    -me interface
+
+set interfaces me0.0 family inet address 20.20.20.2/24
+
+--------------------------------------------------------------------------
+Vlan 
+set vlans name1 vlan-id 10
+set vlans name2 vlan-id 20
+
+set interfaces ge-0/0/1.0 family ethernet-switching vlan members name1
+set interfaces ge-0/0/2.0 family ethernet-switching vlan members name2
+
+set interfaces vlan.10 family inet address 192.168.10.1/24
+set interfaces vlan.20 family inet address 192.168.20.1/24
+
+set vlans name1 l3-interface vlan.10
+set vlans name2 l3-interface vlan.20
+
+set interfaces ge-0/0/20.0 family inet address 192.168.30.1/24
+set routing-options static route 0.0.0.0/0 next-hop 192.168.30.2/24
+
+--------------------------------------------------------------------------
+
+DHCP
+
+cs 192.168.3.2 - 30 / 24
+ec 192.168.4.2 - 30 / 24
+
+set vlans cs vlan-id 3
+set vlans ec vlan-id 4
+
+set interfaces ge-0/0/3.0 family ethernet-switching vlan members cs
+set interfaces ge-0/0/4.0 family ethernet-switching vlan members ec
+
+set interfaces vlan unit 3 family inet address 192.168.3.1/24
+set interfaces vlan unit 4 family inet address 192.168.4.1/24
+
+set vlans cs l3-interface vlan.3
+set vlans ec l3-interface vlan.4
+
+set system services dhcp pool 192.168.3.0/24 address range low 192.168.3.2 high 192.168.3.30
+set sysetm services dhcp pool 192.168.4.0/24 address range low 192.168.4.2 high 192.168.4.30
+
+set system services dhcp pool 192.168.3.0/24 router 192.168.3.1
+set system services dhcp pool 192.168.4.0/24 router 192.168.4.1
+
+--------------------------------------------------------------------------
+
+OSPF
+
+set vlans a1 vlan-id 10
+set interfaces ge-0/0/10.0 family ethernet-switching vlan members a1
+set interfaces vlan unit 10 inet address 192.168.10.1/24
+set vlans a1 l3-interface vlan.10
+
+set interfaces ge-0/0/1.0 inet address 192.168.1.1/24
+set interfaces ge-0/0/2.0 inet address 192.168.2.1/24
+
+set protocols ospf area 0.0.0.10 interface ge-0/0/1.0 metric 5
+set protocols ospf area 0.0.0.10 interface ge-0/0/2.0 metric 10
+set protocols ospf area 0.0.0.10 vlan.10
+
+----
+
+set vlans a2 vlan-id 20
+set interfaces ge-0/0/20.0 family ethernet-switching vlan members a2
+set interfaces vlan unit 20 family inet address 192.168.20.1/24
+set vlans a2 l3-interface vlan.20
+
+set interfaces ge-0/0/1.0 inet address 192.168.3.1/24
+set interfaces ge-0/0/2.0 inet address 192.168.4.1/24
+
+set protocols ospf area 0.0.0.20 interface ge-0/0/1.0 metric 5
+set protocols ospf area 0.0.0.20 interface ge-0/0/2.0 metric 10
+set protocols ospf area 0.0.0.20 vlan.20

@@ -55,30 +55,47 @@ int main(int argc, char const *argv[]){
     while (true){
 
         int sizeof_client = sizeof(client_address);
-
         if(( client_socket_desc = accept(server_socket_desc, (sockaddr *)&client_address, &sizeof_client)) == -1){
             perror("Cannot accept connection\n");
         }
 
-        char cmd[256], tmp[256];
+        char cmd[256], tmp[256], file_name[265];
+
         recv(client_socket_desc, tmp, sizeof tmp, 0);
-        // printf("cmd: %s\n", cmd);
+        scanf(tmp, "%s", cmd);
+        if(!strcmp(cmd, "get")){
+            sscanf(tmp, "%s %s", cmd, file_name);
+            struct stat file_stat;
+            stat(file_name, &file_stat);
+            int file_size = file_stat.st_size;
 
-        char file_name[265];
-        sscanf(tmp, "%s %s", cmd, file_name);
+            int file_handle = open(file_name, O_RDONLY);
+            if(file_handle == -1){
+                file_size = 0;
+            }
 
-        struct stat file_stat;
-        stat(file_name, &file_stat);
-        int file_size = file_stat.st_size;
+            send(client_socket_desc, &file_size, sizeof file_size, 0);
+            sendfile(client_socket_desc, file_handle, NULL, file_size);
+            close(file_handle);
 
-        int file_handle = open(file_name, O_RDONLY);
-        if(file_handle == -1){
-            file_size = 0;
+        } else if(!strcmp(cmd, "put")){
+            sscanf(tmp, "%s %s", cmd, file_name);
+            char buffer[65536];
+            int file_size;
+            recv(client_socket_desc, &file_size, sizeof file_size, 0);
+            printf("File size : %d", file_size);
+            recv(client_socket_desc, buffer,sizeof buffer, 0);
+            char final_file_name[256] = "uploaded_by_client_";
+            strcat(final_file_name, file_name);
+            int file_handle = open(final_file_name, O_CREAT | O_EXCL | O_WRONLY| O_RDONLY, 0666);
+            if(file_handle == -1){
+                printf("Error opening file.");
+                exit(1);
+            }
+            write(file_handle, buffer, file_size);
+            close(file_handle);
         }
-        send(client_socket_desc, &file_size, sizeof file_size, 0);
-        unsigned char buffer[65536];
-        // int nbytes_read = read(file_handle, buffer, sizeof buffer);
-        sendfile(client_socket_desc, file_handle, NULL, 0);
+
         close(client_socket_desc);
     }
 

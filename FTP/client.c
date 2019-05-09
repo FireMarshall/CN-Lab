@@ -50,7 +50,6 @@ int main(int argc, char const *argv[]) {
 
         strcpy(cmd,"get ");
         strcat(cmd, file_name);
-        // printf("cmd: %s\n", cmd);
         send(client_socket_desc, cmd, sizeof cmd, 0);
 
         int file_size;
@@ -59,18 +58,40 @@ int main(int argc, char const *argv[]) {
         printf("File size : %d", file_size);
 
         recv(client_socket_desc, buffer,sizeof buffer, 0);
-        char final_file_name[256] = "Copy_of_";
+        char final_file_name[256] = "downloaded_from_server_";
         strcat(final_file_name, file_name);
         int file_handle = open(final_file_name, O_CREAT | O_EXCL | O_WRONLY| O_RDONLY, 0666);
         if(file_handle == -1){
             printf("Error opening file.");
             exit(1);
         }
-
         write(file_handle, buffer, file_size);
+        close(file_handle);
+        break;
+    case 2:
+        printf("Enter the file to send: ");
+        scanf("%s", file_name);
+
+        strcpy(cmd,"put ");
+        strcat(cmd, file_name);
+        send(client_socket_desc, cmd, sizeof cmd, 0);
+
+        struct stat file_stat;
+        stat(file_name, &file_stat);
+        int file_size = file_stat.st_size;
+
+        int file_handle = open(file_name, O_RDONLY);
+        if(file_handle == -1){
+            file_size = 0;
+            perror("Error opening file");
+            exit(1);
+        }
+
+        send(client_socket_desc, &file_size, sizeof file_size, 0);
+        sendfile(client_socket_desc, file_handle, NULL, file_size);
+        close(file_handle);
         break;
     }
-
 
     close(client_socket_desc);
     return 0;
